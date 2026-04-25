@@ -1,0 +1,12 @@
+C:\Users\Developer's Energy\Documents\My Games\MonoGame\bin\Debug\net8.0\MonoGame.deps.json
+C:\Users\Developer's Energy\Documents\My Games\MonoGame\bin\Debug\net8.0\MonoGame.dll
+C:\Users\Developer's Energy\Documents\My Games\MonoGame\bin\Debug\net8.0\MonoGame.pdb
+C:\Users\Developer's Energy\Documents\My Games\MonoGame\obj\Debug\net8.0\MonoGame.csproj.AssemblyReference.cache
+C:\Users\Developer's Energy\Documents\My Games\MonoGame\obj\Debug\net8.0\MonoGame.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Developer's Energy\Documents\My Games\MonoGame\obj\Debug\net8.0\MonoGame.AssemblyInfoInputs.cache
+C:\Users\Developer's Energy\Documents\My Games\MonoGame\obj\Debug\net8.0\MonoGame.AssemblyInfo.cs
+C:\Users\Developer's Energy\Documents\My Games\MonoGame\obj\Debug\net8.0\MonoGame.csproj.CoreCompileInputs.cache
+C:\Users\Developer's Energy\Documents\My Games\MonoGame\obj\Debug\net8.0\MonoGame.dll
+C:\Users\Developer's Energy\Documents\My Games\MonoGame\obj\Debug\net8.0\refint\MonoGame.dll
+C:\Users\Developer's Energy\Documents\My Games\MonoGame\obj\Debug\net8.0\MonoGame.pdb
+C:\Users\Developer's Energy\Documents\My Games\MonoGame\obj\Debug\net8.0\ref\MonoGame.dll
