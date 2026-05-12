@@ -20,6 +20,10 @@ namespace MGTool.Mechanics
         private MGT_Pixel pixel = new MGT_Pixel();
         private MGT_Text HitBoxText = new MGT_Text();
         private string Text = null!;
+        private bool GravityAdded = false, isOnGround = false;
+        MGT_Physics phy = new MGT_Physics();
+        float curX, curY;
+        List<MGT_HitBox> Targets = new List<MGT_HitBox>();
 
         //New
 
@@ -30,16 +34,31 @@ namespace MGTool.Mechanics
             SetSize(_Width, _Height);
             PositionX = _Position.X;
             PositionY = _Position.Y;
+            curX = PositionX;
+            curY = PositionY;
             SetColor(_Color);
             SetAlpha(_Alpha);
 
             HitBoxText.SetText("Button");
             HitBoxText.SetColor(Color.White);
 
+            Targets.Clear();
+
             pixel.New();
+            phy.New();
+            UpdateHitBox();
         }
 
         //Set
+
+        public void SetRootPosition(Vector2 RootPosition)
+        {
+            curX = RootPosition.X;
+            curY = RootPosition.Y;
+            PositionX = curX;
+            PositionY = curY;
+            UpdateHitBox();
+        }
 
         public void SetText(SpriteFont _Font, string _Text, Color _Color)
         {
@@ -64,23 +83,30 @@ namespace MGTool.Mechanics
 
         public void SetSize(int _Width, int _Height)
         {
-            Width = _Width * (int)Scale.X;
-            Height = _Height * (int)Scale.Y;
+            Width = _Width;
+            Height = _Height;
+            UpdateHitBox();
         }
 
         public int SetWidth(int _Width)
         {
-            return Width = _Width * (int)Scale.X;
+            Width = _Width;
+            UpdateHitBox();
+            return Width;
         }
 
         public int SetHeight(int _Height)
         {
-            return Height = _Height * (int)Scale.Y;
+            Height = _Height;
+            UpdateHitBox();
+            return Height;
         }
 
         public Vector2 SetScale(float _ScaleX, float _ScaleY)
         {
-            return Scale = new Vector2(_ScaleX, _ScaleY);
+            Scale = new Vector2(_ScaleX, _ScaleY);
+            UpdateHitBox();
+            return Scale;
         }
 
         public float SetAlpha(float _Alpha)
@@ -91,6 +117,12 @@ namespace MGTool.Mechanics
         public Color SetColor(Color _Color)
         {
             return Color = _Color;
+        }
+
+        public void SetGravity(bool state)
+        {
+            GravityAdded = state;
+            if (state) phy.AddVelocityY();
         }
 
         //Get
@@ -112,12 +144,12 @@ namespace MGTool.Mechanics
 
         public float GetWidth()
         {
-            return Width;
+            return Width * Scale.X;
         }
 
         public float GetHeight()
         {
-            return Height;
+            return Height * Scale.Y;
         }
 
         public Vector2 GetPosition()
@@ -160,22 +192,101 @@ namespace MGTool.Mechanics
             );
         }
 
+        public MGT_Physics GetGravity()
+        {
+            return phy;
+        }
+
+        public Vector2 GetHitBoxCollisonPosition()
+        {
+            return new Vector2(curX, curY);
+        }
+
         //Others
+
+        public void AddNewTarget(MGT_HitBox _Target)
+        {
+            Targets.Add(_Target);
+        }
+
+        public void RemoveTarget(MGT_HitBox _Target)
+        {
+            Targets.Remove(_Target);
+        }
 
         public void FollowObject(Vector2 _ObjectPosition)
         {
-            PositionX = _ObjectPosition.X;
-            PositionY = _ObjectPosition.Y;
+            curX = _ObjectPosition.X;
+            curY = _ObjectPosition.Y;
+            PositionX = curX;
+            PositionY = curY;
+            UpdateHitBox();
         }
 
-        public bool CanMoveTo(float _TargetX, float _TargetY, MGT_HitBox _Target)
+        private bool IsSpaceFree(float _tx, float _ty)
         {
-            Rectangle FutureRect = GetRectAt(_TargetX, _TargetY);
-
-            if (FutureRect.Intersects(_Target.GetHitBoxRect()))
-                return false;
-
+            Rectangle futureRect = GetRectAt(_tx, _ty);
+            foreach (var target in Targets)
+            {
+                if (futureRect.Intersects(target.GetHitBoxRect()))
+                {
+                    return false;
+                }
+            }
             return true;
+        }
+
+        private void UpdateHitBox()
+        {
+            HitBox = new Rectangle((int)PositionX, (int)PositionY, (int)(Width * Scale.X), (int)(Height * Scale.Y));
+        }
+
+        public void SetDynamicCollison(float dx = 0f, float dy = 0f)
+        {
+            float dt = MGT_Loader.GetDeltaTime();
+
+            if (!GravityAdded)
+            {
+                if (IsSpaceFree(curX + dx, curY)) curX += dx;
+                if (IsSpaceFree(curX, curY + dy)) curY += dy;
+            }
+            else
+            {
+                phy.AddVelocityY();
+
+                if (IsSpaceFree(curX + dx, curY)) curX += dx;
+
+                float finalMoveY = phy.GetVelocityY() * dt;
+
+                if (IsSpaceFree(curX, curY + finalMoveY))
+                {
+                    curY += finalMoveY;
+                    isOnGround = false;
+                }
+                else
+                {
+                    if (finalMoveY > 0)
+                    {
+                        isOnGround = true;
+                        phy.StopVelocityY();
+                        while (IsSpaceFree(curX, curY + 0.1f)) curY += 0.1f;
+                    }
+                    else if (finalMoveY < 0)
+                    {
+                        phy.StopVelocityY();
+                    }
+                }
+            }
+
+            PositionX = curX;
+            PositionY = curY;
+            UpdateHitBox();
+        }
+
+        public bool DetectGravityGround()
+        {
+            isOnGround = !IsSpaceFree(curX, curY + 1f);
+            return isOnGround;
         }
 
         public void ConnectSprite(MGT_Sprite _Sprite)
@@ -183,28 +294,22 @@ namespace MGTool.Mechanics
             Width = _Sprite.GetWidth();
             Height = _Sprite.GetHeight();
             FollowObject(_Sprite.GetPosition());
-
-            int finalWidth = (int)(Width * Scale.X);
-            int finalHeight = (int)(Height * Scale.Y);
-
-            HitBox = new Rectangle(
-                (int)PositionX + (finalWidth / 2),
-                (int)PositionY + (finalHeight / 2),
-                finalWidth,
-                finalHeight
-            );
         }
 
         //Draw
         public void Draw()
         {
-
-            int finalWidth = (int)(Width * Scale.X);
-            int finalHeight = (int)(Height * Scale.Y);
-
-            HitBox = new Rectangle((int)PositionX, (int)PositionY, finalWidth, finalHeight);
-
             MGT_Loader.GetSpriteBatch().Draw(pixel.GetPixel(), HitBox, Color * Alpha);
+
+            if (Text != null)
+            {
+                Vector2 textPos = new Vector2(
+                    HitBox.X + (HitBox.Width / 2) - (HitBoxText.GetSize().X / 2),
+                    HitBox.Y + (HitBox.Height / 2) - (HitBoxText.GetSize().Y / 2)
+                );
+                HitBoxText.SetPosition(textPos);
+                HitBoxText.Draw();
+            }
         }
     }
 }
