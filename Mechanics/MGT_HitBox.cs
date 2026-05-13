@@ -4,6 +4,7 @@ using MGTool.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Create;
+using System;
 using System.Collections.Generic;
 
 namespace MGTool.Mechanics
@@ -204,6 +205,11 @@ namespace MGTool.Mechanics
 
         //Others
 
+        public void ConfigurePhysics(float gravity = 1500, float jumpForce = 1000)
+        {
+            phy.New(gravity, jumpForce);
+        }
+
         public void AddNewTarget(MGT_HitBox _Target)
         {
             Targets.Add(_Target);
@@ -238,44 +244,75 @@ namespace MGTool.Mechanics
 
         private void UpdateHitBox()
         {
-            HitBox = new Rectangle((int)PositionX, (int)PositionY, (int)(Width * Scale.X), (int)(Height * Scale.Y));
+            HitBox = new Rectangle(
+                (int)Math.Round(curX),
+                (int)Math.Round(curY),
+                (int)(Width * Scale.X),
+                (int)(Height * Scale.Y)
+            );
+
+            PositionX = HitBox.X;
+            PositionY = HitBox.Y;
         }
 
         public void SetDynamicCollison(float dx = 0f, float dy = 0f)
         {
             float dt = MGT_Loader.GetDeltaTime();
 
-            if (!GravityAdded)
+            if (IsSpaceFree(curX + dx, curY)) curX += dx;
+
+            if (GravityAdded)
             {
-                if (IsSpaceFree(curX + dx, curY)) curX += dx;
-                if (IsSpaceFree(curX, curY + dy)) curY += dy;
-            }
-            else
-            {
-                phy.AddVelocityY();
+                float moveY = phy.AddVelocityY() * dt;
 
-                if (IsSpaceFree(curX + dx, curY)) curX += dx;
-
-                float finalMoveY = phy.GetVelocityY() * dt;
-
-                if (IsSpaceFree(curX, curY + finalMoveY))
+                if (moveY < 0)
                 {
-                    curY += finalMoveY;
                     isOnGround = false;
+                    if (IsSpaceFree(curX, curY + moveY))
+                    {
+                        curY += moveY;
+                    }
+                    else
+                    {
+                        phy.StopVelocityY();
+                        foreach (var target in Targets)
+                        {
+                            if (GetRectAt(curX, curY + moveY).Intersects(target.GetHitBoxRect()))
+                            {
+                                curY = target.GetHitBoxRect().Bottom;
+                                break;
+                            }
+                        }
+                    }
                 }
                 else
                 {
-                    if (finalMoveY > 0)
+                    if (IsSpaceFree(curX, curY + moveY))
                     {
-                        isOnGround = true;
-                        phy.StopVelocityY();
-                        while (IsSpaceFree(curX, curY + 0.1f)) curY += 0.1f;
+                        curY += moveY;
+                        isOnGround = false;
                     }
-                    else if (finalMoveY < 0)
+                    else
                     {
-                        phy.StopVelocityY();
+                        if (!isOnGround)
+                        {
+                            phy.StopVelocityY();
+                            foreach (var target in Targets)
+                            {
+                                if (GetRectAt(curX, curY + moveY).Intersects(target.GetHitBoxRect()))
+                                {
+                                    curY = target.GetHitBoxRect().Top - GetHeight();
+                                    break;
+                                }
+                            }
+                            isOnGround = true;
+                        }
                     }
                 }
+            }
+            else
+            {
+                if (IsSpaceFree(curX, curY + dy)) curY += dy;
             }
 
             PositionX = curX;
